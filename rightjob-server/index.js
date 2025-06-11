@@ -9,7 +9,7 @@ require('dotenv').config();
 const app = express();
 const upload = multer({
   dest: 'uploads/',
-  limits: { fileSize: 2 * 1024 * 1024 } // 2MB limit
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB limit
 });
 app.use(cors());
 
@@ -22,8 +22,15 @@ app.post('/upload', upload.single('resume'), async (req, res) => {
     const data = await pdfParse(dataBuffer);
     const text = data.text;
 
-    // ✳️ Step 1: Validate if it's a resume
-    const validationPrompt = `Does the following text represent a resume? Respond only with "YES" or "NO" ONLY. The following text is :\n\n${text}`;
+    // Step 1: Validate if it's a resume
+    const validationPrompt = `
+      Please determine if the following text is a professional resume.
+      Respond ONLY with "YES" or "NO".
+
+      Resume Content:
+      ${text}
+    `;
+
     const validationResponse = await axios.post(
       'https://api.cohere.ai/v1/generate',
       {
@@ -34,7 +41,7 @@ app.post('/upload', upload.single('resume'), async (req, res) => {
       },
       {
         headers: {
-          'Authorization': `Bearer ${COHERE_API_KEY}`,
+          Authorization: `Bearer ${COHERE_API_KEY}`,
           'Content-Type': 'application/json',
         },
       }
@@ -42,19 +49,30 @@ app.post('/upload', upload.single('resume'), async (req, res) => {
 
     const validationText = validationResponse.data.generations[0].text.trim();
 
-    // ✳️ Step 2: Check response
     if (validationText.toLowerCase().startsWith('no')) {
       fs.unlinkSync(filePath);
       return res.status(400).json({
         error: 'NOT_RESUME',
         message: 'The uploaded file does not appear to be a resume.',
-        reason: validationText
+        reason: validationText,
       });
-
     }
 
-    // Step 3: Resume Feedback
-    const feedbackPrompt = `You're an expert resume reviewer. Give specific improvement suggestions for this resume:\n\n${text}`;
+    // Step 2: Resume Feedback Prompt
+    const feedbackPrompt = `
+      You are an expert resume reviewer.
+
+      Carefully review the resume below and provide clear, constructive, and actionable feedback to improve:
+      - Clarity and formatting
+      - Strength of language and accomplishments
+      - Relevance to common job roles
+
+      Resume Content:
+      ${text}
+
+      Provide your feedback in bullet points.
+    `;
+
     const feedbackResponse = await axios.post(
       'https://api.cohere.ai/v1/generate',
       {
@@ -65,15 +83,24 @@ app.post('/upload', upload.single('resume'), async (req, res) => {
       },
       {
         headers: {
-          'Authorization': `Bearer ${COHERE_API_KEY}`,
+          Authorization: `Bearer ${COHERE_API_KEY}`,
           'Content-Type': 'application/json',
         },
       }
     );
     const feedback = feedbackResponse.data.generations[0].text;
 
-    // Step 4: Job Suggestions
-    const jobPrompt = `Based on the following resume, suggest 3-5 suitable job roles:\n\n${text}`;
+    // Step 3: Job Role Suggestions
+    const jobPrompt = `
+      Based on the following resume, suggest 3 to 5 job roles or career paths
+      that align with the candidate’s skills, experience, and qualifications.
+
+      Resume Content:
+      ${text}
+
+      List the job roles with a short justification for each.
+    `;
+
     const jobResponse = await axios.post(
       'https://api.cohere.ai/v1/generate',
       {
@@ -84,15 +111,27 @@ app.post('/upload', upload.single('resume'), async (req, res) => {
       },
       {
         headers: {
-          'Authorization': `Bearer ${COHERE_API_KEY}`,
+          Authorization: `Bearer ${COHERE_API_KEY}`,
           'Content-Type': 'application/json',
         },
       }
     );
     const jobSuggestions = jobResponse.data.generations[0].text;
 
-    // Step 5: Career Change Tips
-    const careerPrompt = `The following is a resume of a career changer. Provide 3-5 tailored tips or advice on how to highlight transferable skills and successfully transition to a new career path.\n\n${text}`;
+    // Step 4: Career Change Tips
+    const careerPrompt = `
+      The following text is a resume of a career changer.
+      Provide 3 to 5 strategic and personalized suggestions to:
+      - Highlight transferable skills
+      - Address lack of direct experience
+      - Improve chances of landing interviews in a new industry
+
+      Resume Content:
+      ${text}
+
+      Present tips as bullet points.
+    `;
+
     const careerResponse = await axios.post(
       'https://api.cohere.ai/v1/generate',
       {
@@ -103,19 +142,16 @@ app.post('/upload', upload.single('resume'), async (req, res) => {
       },
       {
         headers: {
-          'Authorization': `Bearer ${COHERE_API_KEY}`,
+          Authorization: `Bearer ${COHERE_API_KEY}`,
           'Content-Type': 'application/json',
         },
       }
     );
     const careerChangeTips = careerResponse.data.generations[0].text;
 
-    // Cleanup
     fs.unlinkSync(filePath);
 
-    // Final Response
     res.json({ feedback, jobSuggestions, careerChangeTips });
-
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Error analyzing resume', error: err.message });
