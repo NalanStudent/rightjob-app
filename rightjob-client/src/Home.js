@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import ReactMarkdown from "react-markdown";
+import { jsPDF } from "jspdf";
 import "./App.css";
 
-// Reusable Modal Component
 function Modal({ title, message, onClose }) {
   return (
     <div className="modal-overlay">
@@ -15,13 +15,8 @@ function Modal({ title, message, onClose }) {
   );
 }
 
-// Reusable Toast Component
 function Toast({ message }) {
-  return (
-    <div className="toast">
-      {message}
-    </div>
-  );
+  return <div className="toast">{message}</div>;
 }
 
 export default function Home() {
@@ -31,11 +26,9 @@ export default function Home() {
   const [careerChangeTips, setCareerChangeTips] = useState("");
   const [showOverlay, setShowOverlay] = useState(false);
   const [loading, setLoading] = useState(false);
-
   const [showModal, setShowModal] = useState(false);
   const [modalTitle, setModalTitle] = useState("");
   const [modalMessage, setModalMessage] = useState("");
-
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
 
@@ -103,6 +96,69 @@ export default function Home() {
     }
   };
 
+  const handleDownloadPDF = () => {
+    const doc = new jsPDF();
+    const margin = 15;
+    const lineHeight = 10;
+    let y = margin;
+
+    const sections = [
+      { title: "AI Feedback", content: feedback },
+      { title: "Job Suggestions", content: jobSuggestions },
+      { title: "Career Change Tips", content: careerChangeTips },
+    ];
+
+    doc.setFontSize(14);
+
+    sections.forEach(({ title, content }) => {
+      doc.setFont("helvetica", "bold");
+      doc.text(title, margin, y);
+      y += lineHeight;
+
+      doc.setFont("helvetica", "normal");
+      const lines = doc.splitTextToSize(content, 180);
+      lines.forEach(line => {
+        if (y > 280) {
+          doc.addPage();
+          y = margin;
+        }
+        doc.text(line, margin, y);
+        y += lineHeight;
+      });
+
+      y += lineHeight;
+    });
+
+    doc.save("Resume-AI-Feedback.pdf");
+  };
+
+const parseJobSuggestions = () => {
+  const blocks = jobSuggestions.split(/(?=\n?\d+\.)/g).filter(block => block.trim());
+
+  return blocks.map((block, index) => {
+    const lines = block.trim().split("\n");
+    const rawTitle = lines[0].replace(/^\d+\.\s*/, "").trim(); // removes "1. ", "2. ", etc.
+
+    const googleQuery = `${rawTitle} jobs near me`;
+    const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(googleQuery)}`;
+
+    return (
+      <div key={index} className="job-card">
+        <ReactMarkdown>{block.trim()}</ReactMarkdown>
+        <a
+          href={searchUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="job-button"
+        >
+          🔗 View Jobs
+        </a>
+      </div>
+    );
+  });
+};
+
+
   return (
     <>
       {showOverlay && (
@@ -141,30 +197,30 @@ export default function Home() {
         {loading && <p className="loading">⏳ Analyzing your resume...</p>}
 
         {!loading && feedback && (
-          <section>
-            <h2>📝 AI Feedback</h2>
-            <div className="markdown-box">
-              <ReactMarkdown>{feedback}</ReactMarkdown>
-            </div>
-          </section>
-        )}
+          <>
+            <section>
+              <h2>📝 AI Feedback</h2>
+              <div className="markdown-box">
+                <ReactMarkdown>{feedback}</ReactMarkdown>
+              </div>
+            </section>
 
-        {!loading && jobSuggestions && (
-          <section>
-            <h2>💼 Job Scope Suggestions</h2>
-            <div className="markdown-box">
-              <ReactMarkdown>{jobSuggestions}</ReactMarkdown>
-            </div>
-          </section>
-        )}
+            <section>
+              <h2>💼 Job Scope Suggestions</h2>
+              <div className="suggestion-column">
+                {parseJobSuggestions()}
+              </div>
+            </section>
 
-        {!loading && careerChangeTips && (
-          <section>
-            <h2>💡 Career Change Tips</h2>
-            <div className="markdown-box">
-              <ReactMarkdown>{careerChangeTips}</ReactMarkdown>
-            </div>
-          </section>
+            <section>
+              <h2>💡 Career Change Tips</h2>
+              <div className="markdown-box">
+                <ReactMarkdown>{careerChangeTips}</ReactMarkdown>
+              </div>
+            </section>
+
+            <button onClick={handleDownloadPDF} className="download-btn">📄 Download PDF</button>
+          </>
         )}
       </main>
 

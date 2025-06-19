@@ -27,7 +27,7 @@ export default function About() {
       <p>Built with 💜 by Team Hextech • UPM • 2025</p>
 
       <button onClick={() => navigate("/")} className="back-button">
-        🔙 Back to Home
+        ⬅️ Back to Home
       </button>
     </main>
   );

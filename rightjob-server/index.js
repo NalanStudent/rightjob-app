@@ -60,18 +60,41 @@ app.post('/upload', upload.single('resume'), async (req, res) => {
 
     // Step 2: Resume Feedback Prompt
     const feedbackPrompt = `
-      You are an expert resume reviewer.
+You are a professional resume reviewer with deep expertise in hiring standards across industries.
 
-      Carefully review the resume below and provide clear, constructive, and actionable feedback to improve:
-      - Clarity and formatting
-      - Strength of language and accomplishments
-      - Relevance to common job roles
+Your task is to analyze the resume below and return **concise, constructive, and actionable feedback**, broken into the following categories:
+- 🔍 **Clarity & Formatting**
+- 💬 **Language & Achievements**
+- 🎯 **Relevance to Common Roles**
 
-      Resume Content:
-      ${text}
+Resume:
+${text}
 
-      Provide your feedback in bullet points.
-    `;
+**Formatting Instructions:**
+- Present each category as a heading (e.g., “🔍 Clarity & Formatting”)
+- Under each heading, give 2–5 **bullet points** with brief, direct suggestions
+- Be specific, practical, and tailored to what’s visible in the resume
+- Do **not** include any greetings, closing statements, or follow-up questions
+- Use **direct, instructional tone**. Avoid phrases like “It would help if…” — instead, say “Add metrics to quantify your achievements.”
+- Do **not** include closing remarks, summaries, or “let me know...” type language.
+- Do **not** include questions or follow-ups. This is a one-way feedback task.
+
+
+Example format:
+🔍 Clarity & Formatting
+- Resume has inconsistent bullet styles across sections
+- Section headers could use more contrast or alignment
+
+💬 Language & Achievements
+- Replace passive phrases like “responsible for” with action verbs like “led” or “executed”
+- Consider quantifying your accomplishments (e.g., “Increased efficiency by 20%”)
+
+🎯 Relevance to Common Roles
+- Skills listed match well with mid-level data analyst roles
+- Recent project work aligns with product-focused roles
+
+Only return your feedback using this format.
+`;
 
     const feedbackResponse = await axios.post(
       'https://api.cohere.ai/v1/generate',
@@ -92,14 +115,33 @@ app.post('/upload', upload.single('resume'), async (req, res) => {
 
     // Step 3: Job Role Suggestions
     const jobPrompt = `
-      Based on the following resume, suggest 3 to 5 job roles or career paths
-      that align with the candidate’s skills, experience, and qualifications.
+You are a career advisor and resume interpreter. Read the resume below and suggest **3 to 5 job roles or career paths** that align with the candidate’s skills and background.
 
-      Resume Content:
-      ${text}
+Resume:
+${text}
 
-      List the job roles with a short justification for each.
-    `;
+**Output Instructions:**
+- Number each job suggestion (e.g., 1., 2.)
+- Use this format for each:
+  **[Job Title]** – [One-line summary]
+  - [Justification 1]
+  - [Justification 2]
+  - [Etc.]
+
+- Justifications should be tailored to the resume (e.g., skills, past roles, projects, tools)
+- Do **not** include greetings, disclaimers, or closing statements
+
+**Example:**
+1. **Software Engineer** – Strong fit due to technical expertise
+  - Experience in Java, Python, and backend systems
+  - Led development of microservices in a team environment
+
+2. **Product Manager** – Great alignment with leadership and delivery skills
+  - Demonstrated ability to coordinate teams
+  - Experience working closely with technical and business stakeholders
+
+Only return the job roles and justifications in this structure.
+`;
 
     const jobResponse = await axios.post(
       'https://api.cohere.ai/v1/generate',
@@ -120,17 +162,34 @@ app.post('/upload', upload.single('resume'), async (req, res) => {
 
     // Step 4: Career Change Tips
     const careerPrompt = `
-      The following text is a resume of a career changer.
-      Provide 3 to 5 strategic and personalized suggestions to:
-      - Highlight transferable skills
-      - Address lack of direct experience
-      - Improve chances of landing interviews in a new industry
+You are an expert in career transitions and resume strategy.
 
-      Resume Content:
-      ${text}
+The candidate below is transitioning to a new industry. Based on the resume, provide **3 to 5 practical, specific, and actionable suggestions** that will help improve their chances of landing interviews in a new field.
 
-      Present tips as bullet points.
-    `;
+Resume:
+${text}
+
+Your suggestions must focus on:
+- Highlighting transferable skills
+- Addressing lack of direct experience
+- Enhancing relevance to new roles
+
+Formatting Rules:
+- Return only a **bullet list**
+- Each bullet must be **standalone**, direct, and no more than **2 short lines**
+- Use **no paragraphs**, no sub-points, and **no explanation**
+- Do **not** include introductions, summaries, advice to "remember", or follow-up questions
+
+🧪 Example Output:
+- Reframe retail experience as customer-facing operations to match business analyst roles  
+- Emphasize leadership from club activities as team coordination experience  
+- Highlight SQL and Excel skills as transferable to data-related positions  
+- Add a “Career Transition” summary to clearly state your new target role  
+- Showcase side projects (e.g., personal finance dashboard) as proof of motivation and skill
+
+Only return suggestions in this bullet point structure. No additional content.
+
+`;
 
     const careerResponse = await axios.post(
       'https://api.cohere.ai/v1/generate',
