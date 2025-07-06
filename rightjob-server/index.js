@@ -132,11 +132,13 @@ ${text}
 - Do **not** include greetings, disclaimers, or closing statements
 
 **Example:**
-1. **Software Engineer** – Strong fit due to technical expertise
+1. **Software Engineer**
+  – Strong fit due to technical expertise
   - Experience in Java, Python, and backend systems
   - Led development of microservices in a team environment
 
-2. **Product Manager** – Great alignment with leadership and delivery skills
+2. **Product Manager** 
+  – Great alignment with leadership and delivery skills
   - Demonstrated ability to coordinate teams
   - Experience working closely with technical and business stakeholders
 

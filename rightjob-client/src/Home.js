@@ -75,6 +75,15 @@ export default function Home() {
         setModalTitle("Invalid Document");
         setModalMessage("This document doesn’t look like a resume. Please upload a valid resume file.");
         setShowModal(true);
+
+        // Clear previous results and hide toast
+        setFeedback("");
+        setJobSuggestions("");
+        setCareerChangeTips("");
+        setShowToast(false);
+        setToastMessage("");
+        setLoading(false);
+        setShowOverlay(false);
         return;
       }
 
